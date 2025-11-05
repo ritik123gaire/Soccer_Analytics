@@ -1,0 +1,28 @@
+# Virtual Environment
+venv/
+*.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# Data Files - NEVER commit large data to Git
+data/raw/
+data/processed/
+*.csv
+*.json
+
+# Models - These are usually too large for Git
+models/*.pkl
+models/*.pt
+
+# Reports & Output
+*.html
