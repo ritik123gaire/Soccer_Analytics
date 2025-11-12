@@ -120,6 +120,9 @@ def train_model():
     
     logging.info(f"Model saved to {model_path}")
     logging.info(f"Scaler saved to {scaler_path}")
+    # Save the feature columns
+    joblib.dump(X_train.columns, MODELS_DIR / "match_outcome_features.pkl")
+    logging.info(f"Feature names saved.")
     logging.info("--- Model training complete. ---")
 
 
