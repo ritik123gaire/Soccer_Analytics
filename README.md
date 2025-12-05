@@ -1,120 +1,228 @@
-# Soccer Analytics Project ⚽
+# ⚽ Soccer Analytics Project
 
-This project is a comprehensive pipeline for soccer analytics, built using Statsbomb open data. It includes data collection, feature engineering, and machine learning models to predict match outcomes and player performance.
+A Full-Stack AI Pipeline for Football Analytics using StatsBomb, YOLOv8 & Streamlit
+
+This project combines event data, machine learning, and computer vision to create an end-to-end analytics system capable of predicting match outcomes, evaluating player scoring probability, and analyzing match footage using an AI-powered video pipeline.
+
+---
 
 ## 🌟 Key Features
 
-* **Model #1: Match Outcome Predictor**
-    * Downloads multiple seasons of La Liga event data.
-    * Calculates rolling team statistics (e.g., avg. xG, avg. possession).
-    * Trains a model (Logistic Regression & Random Forest) to predict match outcomes (Home Win, Draw, Away Win).
+### 🏆 Model 1 — Match Outcome Predictor
 
-* **Model #2: Player Scoring Predictor**
-    * *Work in Progress: Aims to predict if a player will score in an upcoming match.*
+Predicts **Home Win / Draw / Away Win** using advanced rolling features:
+- Rolling xG, possession %, passes (last 5 matches)
+- Team form indicators
 
-* **Computer Vision**
-    * *Planned: Use YOLOv8 for player detection in match footage.*
+**Models used:** Logistic Regression, Random Forest  
+**Training Dataset:** 6 seasons of La Liga (~2,200 matches)
 
-* **Dashboard**
-    * *Planned: A Streamlit dashboard to interact with the models.*
+### ⚽ Model 2 — Player Scoring Probability
 
-## 💻 Tech Stack
+Predicts the likelihood of a player scoring in the next match.
 
-* Python 3.10+
-* pandas & numpy (for data manipulation)
-* statsbombpy (for data collection)
-* scikit-learn (for feature scaling and modeling)
-* joblib (for saving models)
-* tqdm (for progress bars)
+**Features:**
+- xG per 90
+- Shots per 90
+- Minutes played
+- Team attacking intensity
 
-## 🛠️ Installation & Setup
+**Model:** Class-Weighted Logistic Regression
 
-Follow these steps to set up your local environment.
+### 🎥 Model 3 — Computer Vision (VisionPro)
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <your-repo-url>
-    cd soccer-analytics-project
-    ```
+A YOLOv8-based video intelligence system:
+- Player & ball detection
+- Team classification via jersey color clustering
+- Possession tracking based on proximity algorithm
+- Output video with real-time overlays
 
-2.  **Create and activate a virtual environment:**
-    ```bash
-    # Create the environment
-    python -m venv venv
+**Technologies:** YOLOv8, OpenCV, Numpy
 
-    # On Windows
-    .\venv\Scripts\activate
+### 📊 Interactive Streamlit Dashboard
 
-    # On macOS/Linux
-    source venv/bin/activate
-    ```
+Includes:
+- Match outcome predictions
+- Player scoring predictions
+- Video processing with YOLOv8
+- Embedded visualization
 
-3.  **Install the required dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-    *(Note: If you haven't created a `requirements.txt` file yet, run `pip freeze > requirements.txt` after installing all the libraries).*
-
-## 🚀 How to Run the Pipeline (Model #1)
-
-This guide will run the complete pipeline to download data and train the Match Outcome Predictor.
-
-**IMPORTANT:** All commands must be run from *within* the `src` folder to ensure the Python imports for `config.py` work correctly.
-
+**Run using:**
 ```bash
-# First, move into the source directory
-cd src
+streamlit run app.py
+```
 
-Now, run the following scripts in order:
+---
 
-1. Download Raw Data
-This script fetches all match event data for the specified seasons from the Statsbomb API and saves them as raw JSON files in data/raw/.
+## 📂 Project Structure
 
-This will take a long time (potentially hours) and several gigabytes of disk space.
-
-Bash
-
-python -m data.data_collection
-
-2. Process Data
-This script reads all the raw JSON files from data/raw/ and aggregates them into a single, clean data/processed/matches.csv file. This file will contain one row per match with high-level stats (score, xG, possession, etc.).
-
-Bash
-
-python -m data.data_processing
-
-3. Engineer Features
-This script takes the matches.csv file and creates rolling-average features for each team (e.g., "average xG over last 5 games"). It saves this final, model-ready dataset to data/processed/match_features.csv.
-
-Bash
-
-python -m features.match_features
-4. Train the Model
-This final script loads match_features.csv, splits the data into training and test sets, scales the features, and trains the models. It will print a classification report to your terminal and save the best-performing model to models/match_outcome_model.pkl.
-
-Bash
-
-python -m src.models.match_predictor
-
-
-📁 Project Structure
+```
 soccer-analytics-project/
-├── config.py           # Stores all file paths
+├── app.py                       # Streamlit dashboard
+├── config.py                    # System configuration
+├── INSTRUCTIONS.pdf             # Annotation guidelines (HW3)
+├── cvat_labels.json             # CVAT → YOLO label config
+├── potato_project/              # Potato text annotation workspace
 ├── data/
-│   ├── raw/            # Raw JSON event files (ignored by Git)
-│   └── processed/      # Cleaned CSV datasets
-├── models/             # Saved .pkl model files
-├── notebooks/          # Jupyter notebooks for exploration
-├── src/                # All Python source code
-│   ├── data/           # Data collection & processing scripts
-│   ├── features/       # Feature engineering scripts
-│   └── models/         # Model training scripts
-├── venv/
-├── .gitignore
-├── README.md
-└── requirements.txt    # All project dependencies
+│   ├── raw/                     # StatsBomb JSON event files
+│   ├── video_raw/               # Raw MP4 match videos
+│   ├── images_for_annotation/   # Extracted frames (HW3)
+│   └── processed/               # Clean CSVs & output MP4s
+├── models/                      # Trained ML models (.pkl)
+├── src/
+│   ├── computer_vision/         # YOLOv8 detection, TeamID
+│   ├── data/                    # Data ingestion + cleaning
+│   ├── features/                # Feature engineering
+│   └── models/                  # ML training pipelines
+├── requirements.txt
+└── README.md
+```
 
+---
 
+## 📝 Data Annotation (ARI 510 — HW3)
 
-📊 Data Source
-All data is sourced from the Statsbomb Open Data repository.
+The project includes a formal annotation workflow for both event text labeling and vision labeling.
+
+### Dataset Contents
+- Event logs (text commentary)
+- Video frames for player/ball annotation
+
+📁 **Dataset link:**  
+[https://drive.google.com/drive/folders/18_k6F3K_nRStpZuSVitwCNxoTgqh2Okl?usp=sharing](https://drive.google.com/drive/folders/18_k6F3K_nRStpZuSVitwCNxoTgqh2Okl?usp=sharing)
+
+### 🔧 Annotation Tools
+
+#### 1. Potato — Event Text Annotation
+Used for labeling event descriptions.  
+**Config:** `potato_project/configs/config.yaml`
+
+#### 2. CVAT — Player & Ball Annotation
+Used to draw bounding boxes.  
+**Export format:** YOLO 1.1  
+Follows rules described in `INSTRUCTIONS.pdf`
+
+### 📘 Annotation Guidelines (Summary)
+
+**Event Tagging Rules:**
+- Label based on intent, not surface wording
+- Example: A cross that enters the net → Shot
+
+**Vision Labeling Rules:**
+- Bounding boxes must be tight
+- Skip objects more than 50% occluded
+- Maintain consistent color labeling for teams
+
+**Full guidelines:** `INSTRUCTIONS.pdf`
+
+---
+
+## 💻 Installation & Setup
+
+### 1️⃣ Clone the repository
+```bash
+git clone <your-repo-url>
+cd soccer-analytics-project
+```
+
+### 2️⃣ Create & activate virtual environment
+```bash
+python -m venv venv
+
+# Windows
+.\venv\Scripts\activate
+
+# macOS/Linux
+source venv/bin/activate
+```
+
+### 3️⃣ Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 4️⃣ Run the dashboard
+```bash
+streamlit run app.py
+```
+
+---
+
+## 📊 Data Sources
+
+| Source | Description |
+|--------|-------------|
+| StatsBomb Open Data | High-quality football event-level dataset |
+| Custom Video Dataset | Raw match recordings used for CV model |
+
+---
+
+## 🧠 Model Summary
+
+| Component | Description |
+|-----------|-------------|
+| Feature Engineering | Rolling windows, team form metrics |
+| Match Model | Logistic Regression, Random Forest |
+| Player Model | Class-Weighted Logistic Regression |
+| Vision Model | YOLOv8 trained on annotated CVAT frames |
+| Dashboard | Streamlit-based web UI |
+| Outputs | Predictions, probabilities, annotated videos |
+
+---
+
+## 📈 Results Summary
+
+### ML Results
+- Evaluated with Accuracy, F1-Score, ROC-AUC
+- Stable performance across 6-season La Liga dataset
+
+### CV Results
+- Tested on 300+ annotated frames
+- Consistent detection of players, ball, and jersey colors
+
+**Why results are reliable:**
+- Clean StatsBomb data
+- Strong handcrafted features
+- Strict annotation guidelines
+- State-of-the-art YOLOv8 detection model
+
+---
+
+## ⚠️ Limitations
+
+- Jersey colors can confuse team classification
+- Occlusion lowers ball detection accuracy
+- Limited custom training data reduces generalization
+- Tactical/formation context not captured fully in numerical data
+
+---
+
+## 🔮 Future Work
+
+- Add Expected Threat (xT) modeling
+- Expand YOLO training dataset
+- Use Optical Flow for better ball tracking
+- Build a pass network visualization module
+- Cloud deployment for real-time match analytics
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome!  
+Fork → Branch → Pull Request.
+
+---
+
+## 📜 License
+
+This project is released under the MIT License.
+
+---
+
+## ⭐ Acknowledgements
+
+- [StatsBomb Open Data](https://github.com/statsbomb/open-data)
+- [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics)
+- University of Michigan-Flint (ARI 510)
+- Open-source sports analytics community
