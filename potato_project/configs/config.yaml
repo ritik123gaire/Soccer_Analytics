@@ -1,0 +1,44 @@
+port: 8000
+server_name: "Soccer Analytics Event Tagger"
+annotation_task_name: "Event Classification"
+
+# --- OUTPUT SETTINGS ---
+output_annotation_dir: "annotation_output/"
+output_annotation_format: "csv"   # <--- THIS WAS MISSING
+annotation_schedule_period: 1
+
+# --- ALERT SETTINGS ---
+alert_time_each_instance: 10000000
+
+# --- DATA FILES ---
+data_files:
+   - "data/data.csv"
+
+# --- DATA MAPPING ---
+item_properties:
+    id_key: "id"
+    text_key: "text"
+
+# --- USER SETTINGS ---
+user_config:
+  allow_all_users: True
+
+# --- LABELS ---
+annotation_schemes:
+  - annotation_type: "radio"
+    name: "event_type"
+    description: "What is the primary action in this play?"
+    labels:
+      - "Pass"
+      - "Shot"
+      - "Goal"
+      - "Foul"
+      - "Dribble"
+  - annotation_type: "multiselect"
+    name: "tags"
+    description: "Additional Context:"
+    labels:
+      - "Successful"
+      - "Interception"
+      - "Yellow Card"
+      - "Assist"
