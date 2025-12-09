@@ -130,10 +130,130 @@
 #     train_model()
 
 
+#model 2
+
+# import pandas as pd
+# import numpy as np
+# from sklearn.model_selection import train_test_split
+# from sklearn.preprocessing import StandardScaler, LabelEncoder
+# from sklearn.ensemble import RandomForestClassifier
+# from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
+# import joblib
+# from pathlib import Path
+# import sys
+
+# ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+# if str(ROOT_DIR) not in sys.path:
+#     sys.path.append(str(ROOT_DIR))
+
+# from config import PROCESSED_DATA_DIR, MODELS_DIR
+
+# def train_match_predictor():
+#     print("=" * 60)
+#     print("MATCH OUTCOME PREDICTOR - TRAINING")
+#     print("=" * 60)
+    
+#     print("\n[1/6] Loading feature data...")
+#     df = pd.read_csv(PROCESSED_DATA_DIR / "match_features.csv")
+#     print(f"   Loaded {len(df)} matches")
+    
+#     # Drop rows with missing values
+#     df_clean = df.dropna()
+#     print(f"   After removing NaN: {len(df_clean)} matches")
+
+#     # Define features (The 12 keys we use)
+#     features = [
+#         'home_xg_for_roll5', 'home_xg_against_roll5',
+#         'home_passes_for_roll5', 'home_passes_against_roll5',
+#         'home_possession_roll5', 'home_points_roll5',
+#         'away_xg_for_roll5', 'away_xg_against_roll5',
+#         'away_passes_for_roll5', 'away_passes_against_roll5',
+#         'away_possession_roll5', 'away_points_roll5'
+#     ]
+    
+#     target = 'match_result'
+
+#     # Check if all features exist
+#     missing_features = [f for f in features if f not in df_clean.columns]
+#     if missing_features:
+#         print(f"   ❌ ERROR: Missing features: {missing_features}")
+#         return
+    
+#     X = df_clean[features]
+#     y = df_clean[target]
+
+#     # Show target distribution
+#     print(f"\n[2/6] Target Distribution:")
+#     print(y.value_counts())
+#     print(f"   Class encoding (alphabetical): {sorted(y.unique())}")
+
+#     # Split Data
+#     print(f"\n[3/6] Splitting data (80/20)...")
+#     X_train, X_test, y_train, y_test = train_test_split(
+#         X, y, test_size=0.2, random_state=42, stratify=y
+#     )
+#     print(f"   Train: {len(X_train)} | Test: {len(X_test)}")
+
+#     # Scale Data
+#     print(f"\n[4/6] Scaling features...")
+#     scaler = StandardScaler()
+#     X_train_scaled = scaler.fit_transform(X_train)
+#     X_test_scaled = scaler.transform(X_test)
+
+#     # Train Model
+#     print(f"\n[5/6] Training RandomForest model...")
+#     model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
+#     model.fit(X_train_scaled, y_train)
+
+#     # Evaluate
+#     print(f"\n[6/6] Evaluating model...")
+#     y_pred = model.predict(X_test_scaled)
+    
+#     accuracy = accuracy_score(y_test, y_pred)
+#     print(f"\n   Accuracy: {accuracy:.2%}")
+    
+#     print("\n   Classification Report:")
+#     print(classification_report(y_test, y_pred))
+    
+#     print("\n   Confusion Matrix:")
+#     print(confusion_matrix(y_test, y_pred))
+    
+#     # Feature Importance
+#     print("\n   Top 5 Most Important Features:")
+#     feature_importance = pd.DataFrame({
+#         'feature': features,
+#         'importance': model.feature_importances_
+#     }).sort_values('importance', ascending=False)
+#     print(feature_importance.head())
+
+#     # Save Everything
+#     print(f"\n" + "=" * 60)
+#     print("SAVING MODEL ARTIFACTS")
+#     print("=" * 60)
+    
+#     MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    
+#     joblib.dump(model, MODELS_DIR / "match_outcome_model.pkl")
+#     print("✅ Model saved: match_outcome_model.pkl")
+    
+#     joblib.dump(scaler, MODELS_DIR / "match_scaler.pkl")
+#     print("✅ Scaler saved: match_scaler.pkl")
+    
+#     # Save feature names for reference
+#     joblib.dump(features, MODELS_DIR / "match_features.pkl")
+#     print("✅ Feature list saved: match_features.pkl")
+    
+#     print("\n" + "=" * 60)
+#     print("TRAINING COMPLETE! 🎉")
+#     print("=" * 60)
+
+# if __name__ == "__main__":
+#     train_match_predictor()
+
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 import joblib
@@ -146,104 +266,170 @@ if str(ROOT_DIR) not in sys.path:
 
 from config import PROCESSED_DATA_DIR, MODELS_DIR
 
+
 def train_match_predictor():
     print("=" * 60)
     print("MATCH OUTCOME PREDICTOR - TRAINING")
     print("=" * 60)
-    
+
+    # -------------------------------------------------
+    # 1) LOAD DATA
+    # -------------------------------------------------
     print("\n[1/6] Loading feature data...")
     df = pd.read_csv(PROCESSED_DATA_DIR / "match_features.csv")
     print(f"   Loaded {len(df)} matches")
-    
-    # Drop rows with missing values
-    df_clean = df.dropna()
-    print(f"   After removing NaN: {len(df_clean)} matches")
 
-    # Define features (The 12 keys we use)
+    # -------------------------------------------------
+    # 2) REBUILD TARGET FROM SCORES (IGNORE match_result)
+    # -------------------------------------------------
+    if not {"home_score", "away_score"}.issubset(df.columns):
+        raise ValueError("❌ home_score / away_score columns are missing in match_features.csv")
+
+    def compute_result(row):
+        if row["home_score"] > row["away_score"]:
+            return "home_win"
+        elif row["home_score"] < row["away_score"]:
+            return "away_win"
+        else:
+            return "draw"
+
+    df["result_label"] = df.apply(compute_result, axis=1)
+
+    # -------------------------------------------------
+    # 3) FEATURES
+    # -------------------------------------------------
     features = [
-        'home_xg_for_roll5', 'home_xg_against_roll5',
-        'home_passes_for_roll5', 'home_passes_against_roll5',
-        'home_possession_roll5', 'home_points_roll5',
-        'away_xg_for_roll5', 'away_xg_against_roll5',
-        'away_passes_for_roll5', 'away_passes_against_roll5',
-        'away_possession_roll5', 'away_points_roll5'
+        "home_xg_for_roll5", "home_xg_against_roll5",
+        "home_passes_for_roll5", "home_passes_against_roll5",
+        "home_possession_roll5", "home_points_roll5",
+        "away_xg_for_roll5", "away_xg_against_roll5",
+        "away_passes_for_roll5", "away_passes_against_roll5",
+        "away_possession_roll5", "away_points_roll5",
     ]
-    
-    target = 'match_result'
 
-    # Check if all features exist
-    missing_features = [f for f in features if f not in df_clean.columns]
+    missing_features = [f for f in features if f not in df.columns]
     if missing_features:
         print(f"   ❌ ERROR: Missing features: {missing_features}")
         return
-    
-    X = df_clean[features]
-    y = df_clean[target]
 
-    # Show target distribution
-    print(f"\n[2/6] Target Distribution:")
-    print(y.value_counts())
-    print(f"   Class encoding (alphabetical): {sorted(y.unique())}")
+    # Drop rows with NaN in features or result_label
+    df_clean = df.dropna(subset=features + ["result_label"])
+    print(f"   After removing NaN: {len(df_clean)} matches")
 
-    # Split Data
+    X = df_clean[features].astype(float)
+    y_str = df_clean["result_label"]
+
+    # FIXED ENCODING:
+    # 0 -> away_win, 1 -> draw, 2 -> home_win
+    class_order = ["away_win", "draw", "home_win"]
+
+    # Mapping labels to integers
+    label_to_int = dict(zip(class_order, range(len(class_order))))
+    # Result:
+    # {"away_win": 0, "draw": 1, "home_win": 2}
+
+    y = y_str.map(label_to_int)
+
+    if y.isna().any():
+        bad_labels = y_str[y.isna()].unique()
+        raise ValueError(f"❌ Unexpected labels in result_label: {bad_labels}")
+
+    print(f"\n[2/6] Target Distribution (string labels):")
+    print(y_str.value_counts())
+
+    print(f"\n[2/6] Encoded Class Distribution (0=away,1=draw,2=home):")
+    print(y.value_counts().sort_index())
+
+    # -------------------------------------------------
+    # 4) TRAIN / TEST SPLIT
+    # -------------------------------------------------
     print(f"\n[3/6] Splitting data (80/20)...")
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y,
     )
     print(f"   Train: {len(X_train)} | Test: {len(X_test)}")
 
-    # Scale Data
+    # -------------------------------------------------
+    # 5) SCALING
+    # -------------------------------------------------
     print(f"\n[4/6] Scaling features...")
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
-    # Train Model
+    # -------------------------------------------------
+    # 6) MODEL TRAINING
+    # -------------------------------------------------
     print(f"\n[5/6] Training RandomForest model...")
-    model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
+    model = RandomForestClassifier(
+        n_estimators=400,
+        max_depth=8,
+        min_samples_leaf=20,
+        class_weight="balanced",  # reduce bias towards majority (draw)
+        random_state=42,
+        n_jobs=-1,
+    )
     model.fit(X_train_scaled, y_train)
 
-    # Evaluate
+    # -------------------------------------------------
+    # 7) EVALUATION
+    # -------------------------------------------------
     print(f"\n[6/6] Evaluating model...")
     y_pred = model.predict(X_test_scaled)
-    
+
     accuracy = accuracy_score(y_test, y_pred)
     print(f"\n   Accuracy: {accuracy:.2%}")
-    
-    print("\n   Classification Report:")
-    print(classification_report(y_test, y_pred))
-    
-    print("\n   Confusion Matrix:")
+
+    print("\n   Classification Report (0=away_win,1=draw,2=home_win):")
+    print(classification_report(
+        y_test,
+        y_pred,
+        target_names=class_order,
+    ))
+
+    print("\n   Confusion Matrix (rows=true, cols=pred):")
     print(confusion_matrix(y_test, y_pred))
-    
-    # Feature Importance
+
     print("\n   Top 5 Most Important Features:")
     feature_importance = pd.DataFrame({
-        'feature': features,
-        'importance': model.feature_importances_
-    }).sort_values('importance', ascending=False)
+        "feature": features,
+        "importance": model.feature_importances_,
+    }).sort_values("importance", ascending=False)
     print(feature_importance.head())
 
-    # Save Everything
-    print(f"\n" + "=" * 60)
+    # Sanity check: ensure classes_ is [0 1 2]
+    print("\n   Model classes_:", model.classes_)
+
+    # -------------------------------------------------
+    # 8) SAVE ARTIFACTS
+    # -------------------------------------------------
+    print("\n" + "=" * 60)
     print("SAVING MODEL ARTIFACTS")
     print("=" * 60)
-    
+
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     joblib.dump(model, MODELS_DIR / "match_outcome_model.pkl")
     print("✅ Model saved: match_outcome_model.pkl")
-    
+
     joblib.dump(scaler, MODELS_DIR / "match_scaler.pkl")
     print("✅ Scaler saved: match_scaler.pkl")
-    
-    # Save feature names for reference
+
     joblib.dump(features, MODELS_DIR / "match_features.pkl")
     print("✅ Feature list saved: match_features.pkl")
-    
+
+    # Extra: save class order for reference (optional)
+    joblib.dump(class_order, MODELS_DIR / "match_classes.pkl")
+    print("✅ Class order saved: match_classes.pkl")
+
     print("\n" + "=" * 60)
     print("TRAINING COMPLETE! 🎉")
     print("=" * 60)
+
 
 if __name__ == "__main__":
     train_match_predictor()
